@@ -10,6 +10,7 @@ from aiogram.types import ReplyKeyboardRemove
 from aiogram import types
 from aiogram.enums import ContentType
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from datetime import datetime
 from config import TOKEN, CHAT_IDS
 from states import RequestStates
@@ -17,6 +18,7 @@ from handlers import cmnd_show_logs
 from handlers import cmnd_clear_logs
 from handlers import cmnd_bot_events
 from handlers import cmnd_clear_bot_events
+from handlers import callback_accept_request
 
 
 # Настройка логирования
@@ -40,6 +42,7 @@ dp.include_router(cmnd_show_logs.router)
 dp.include_router(cmnd_clear_logs.router)
 dp.include_router(cmnd_bot_events.router)
 dp.include_router(cmnd_clear_bot_events.router)
+dp.include_router(callback_accept_request.router)
 
 async def main():
     logger.info("🚀 Бот запускается...")
@@ -166,12 +169,16 @@ async def finish_request(message: Message, state: FSMContext, with_photo: bool):
     await message.answer("Заявка успешно сформирована и отправлена!", reply_markup=start_kb)
 
     target_chat = CHAT_IDS.get(data["department"])
+    builder = InlineKeyboardBuilder()
+    builder.button(text="✅ Принять", callback_data=f"accept_{message.from_user.id}")
+    markup = builder.as_markup()
+
     if with_photo:
-        await bot.send_photo(target_chat, photo=data["photo"], caption=text)
-        await bot.send_photo(CHAT_IDS["all"], photo=data["photo"], caption=text)
+        sent1 = await bot.send_photo(target_chat, photo=data["photo"], caption=text, reply_markup=markup)
+        sent2 = await bot.send_photo(CHAT_IDS["all"], photo=data["photo"], caption=text)
     else:
-        await bot.send_message(target_chat, text)
-        await bot.send_message(CHAT_IDS["all"], text)
+        sent1 = await bot.send_message(target_chat, text, reply_markup=markup)
+        sent2 = await bot.send_message(CHAT_IDS["all"], text)
 
     # перед state.clear()
     with open("logs.txt", "a", encoding="utf-8") as log_file:
