@@ -1,6 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import Message, FSInputFile
 from config import ADMINS
+import os
 
 router = Router()
 
@@ -10,8 +11,13 @@ async def show_logs(message: Message):
         await message.answer("У вас нет доступа к этой команде.")
         return
 
-    try:
-        file = FSInputFile("logs.txt")
-        await message.answer_document(file, caption="Файл логов:")
-    except FileNotFoundError:
+    if not os.path.exists("logs.txt"):
         await message.answer("Файл логов не найден.")
+        return
+
+    if os.path.getsize("logs.txt") == 0:
+        await message.answer("Файл логов пуст.")
+        return
+
+    file = FSInputFile("logs.txt")
+    await message.answer_document(file, caption="Файл логов:")

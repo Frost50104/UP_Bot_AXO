@@ -1,3 +1,5 @@
+import logging
+import sys
 import re
 import asyncio
 from aiogram import Bot, Dispatcher, F
@@ -12,16 +14,41 @@ from datetime import datetime
 from config import TOKEN, CHAT_IDS
 from states import RequestStates
 from handlers import cmnd_show_logs
+from handlers import cmnd_clear_logs
+from handlers import cmnd_bot_events
+from handlers import cmnd_clear_bot_events
 
 
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    handlers=[
+        logging.FileHandler("bot_events.log", encoding="utf-8"),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
+
+
+# Инициализация бота и диспетчера
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
 # Подключение роутера
 dp.include_router(cmnd_show_logs.router)
+dp.include_router(cmnd_clear_logs.router)
+dp.include_router(cmnd_bot_events.router)
+dp.include_router(cmnd_clear_bot_events.router)
 
 async def main():
-    await dp.start_polling(bot)
+    logger.info("🚀 Бот запускается...")
+    try:
+        await dp.start_polling(bot)
+    except Exception as e:
+        logger.exception(f"❌ Ошибка в боте: {e}")
+    finally:
+        logger.info("⛔️ Бот остановлен.")
 
 start_kb = ReplyKeyboardMarkup(
     keyboard=[[KeyboardButton(text="НОВАЯ ЗАЯВКА")]],
