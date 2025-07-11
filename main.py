@@ -19,6 +19,8 @@ from handlers import cmnd_clear_logs
 from handlers import cmnd_bot_events
 from handlers import cmnd_clear_bot_events
 from handlers import callback_accept_request
+from handlers import callback_comment_request
+from handlers import handle_comment_reply
 
 
 # Настройка логирования
@@ -43,6 +45,8 @@ dp.include_router(cmnd_clear_logs.router)
 dp.include_router(cmnd_bot_events.router)
 dp.include_router(cmnd_clear_bot_events.router)
 dp.include_router(callback_accept_request.router)
+dp.include_router(callback_comment_request.router)
+dp.include_router(handle_comment_reply.router)
 
 async def main():
     logger.info("🚀 Бот запускается...")
@@ -164,6 +168,7 @@ async def finish_request(message: Message, state: FSMContext, with_photo: bool):
     parts.append(f"Текст заявки: {data['problem']}")
     parts.append("\nИнформация об отправителе")
     parts.append(f"Отправитель: {user_info}")
+    parts.append(f"user_id: {message.from_user.id}")
 
     text = "\n".join(parts)
     await message.answer("Заявка успешно сформирована и отправлена!", reply_markup=start_kb)
@@ -171,6 +176,7 @@ async def finish_request(message: Message, state: FSMContext, with_photo: bool):
     target_chat = CHAT_IDS.get(data["department"])
     builder = InlineKeyboardBuilder()
     builder.button(text="✅ Принять", callback_data=f"accept_{message.from_user.id}")
+    builder.button(text="💬 Комментарий", callback_data="request_comment")
     markup = builder.as_markup()
 
     if with_photo:
