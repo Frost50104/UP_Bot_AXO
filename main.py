@@ -96,8 +96,16 @@ async def new_request(message: Message, state: FSMContext):
     await message.answer("В какой отдел отправляем заявку?", reply_markup=department_kb())
     await state.set_state(RequestStates.ChoosingDepartment)
 
+@dp.message(RequestStates.ChoosingDepartment, F.photo | F.video | F.document | F.voice | F.sticker | F.animation)
+async def choose_department_media(message: Message, state: FSMContext):
+    await message.answer("Пожалуйста, выберите отдел из списка, нажав на соответствующую кнопку", reply_markup=department_kb())
+
 @dp.message(RequestStates.ChoosingDepartment)
 async def choose_department(message: Message, state: FSMContext):
+    if message.text is None:
+        await message.answer("Пожалуйста, выберите отдел из списка, нажав на соответствующую кнопку", reply_markup=department_kb())
+        return
+        
     text = message.text.strip()
     if text == "ОТМЕНА":
         await cmd_start(message, state)
@@ -109,8 +117,16 @@ async def choose_department(message: Message, state: FSMContext):
     await message.answer("Укажите адрес точки", reply_markup=cancel_kb)
     await state.set_state(RequestStates.EnterAddress)
 
+@dp.message(RequestStates.EnterAddress, F.photo | F.video | F.document | F.voice | F.sticker | F.animation)
+async def address_step_media(message: Message, state: FSMContext):
+    await message.answer("Пожалуйста, введите адрес точки текстом", reply_markup=cancel_kb)
+
 @dp.message(RequestStates.EnterAddress)
 async def address_step(message: Message, state: FSMContext):
+    if message.text is None:
+        await message.answer("Пожалуйста, введите адрес точки текстом", reply_markup=cancel_kb)
+        return
+        
     text = message.text.strip()
     if text == "ОТМЕНА":
         await cmd_start(message, state)
@@ -127,8 +143,16 @@ async def address_step(message: Message, state: FSMContext):
         await message.answer("Укажите рабочий номер телефона точки", reply_markup=cancel_kb)
         await state.set_state(RequestStates.EnterPhone)
 
+@dp.message(RequestStates.EnterIP, F.photo | F.video | F.document | F.voice | F.sticker | F.animation)
+async def enter_ip_media(message: Message, state: FSMContext):
+    await message.answer("Пожалуйста, введите ИП точки текстом", reply_markup=cancel_kb)
+
 @dp.message(RequestStates.EnterIP)
 async def enter_ip(message: Message, state: FSMContext):
+    if message.text is None:
+        await message.answer("Пожалуйста, введите ИП точки текстом", reply_markup=cancel_kb)
+        return
+        
     text = message.text.strip()
     if text == "ОТМЕНА":
         await cmd_start(message, state)
@@ -141,8 +165,16 @@ async def enter_ip(message: Message, state: FSMContext):
     await message.answer("Укажите рабочий номер телефона точки", reply_markup=cancel_kb)
     await state.set_state(RequestStates.EnterPhone)
 
+@dp.message(RequestStates.EnterPhone, F.photo | F.video | F.document | F.voice | F.sticker | F.animation)
+async def phone_step_media(message: Message, state: FSMContext):
+    await message.answer("Пожалуйста, введите номер телефона текстом", reply_markup=cancel_kb)
+
 @dp.message(RequestStates.EnterPhone)
 async def phone_step(message: Message, state: FSMContext):
+    if message.text is None:
+        await message.answer("Пожалуйста, введите номер телефона текстом", reply_markup=cancel_kb)
+        return
+        
     text = message.text.strip()
     if text == "ОТМЕНА":
         await cmd_start(message, state)
@@ -156,8 +188,16 @@ async def phone_step(message: Message, state: FSMContext):
     await message.answer(prompt, reply_markup=cancel_kb)
     await state.set_state(RequestStates.DescribeProblem)
 
+@dp.message(RequestStates.DescribeProblem, F.photo | F.video | F.document | F.voice | F.sticker | F.animation)
+async def description_step_media(message: Message, state: FSMContext):
+    await message.answer("Пожалуйста, опишите проблему текстом", reply_markup=cancel_kb)
+
 @dp.message(RequestStates.DescribeProblem)
 async def description_step(message: Message, state: FSMContext):
+    if message.text is None:
+        await message.answer("Пожалуйста, опишите проблему текстом", reply_markup=cancel_kb)
+        return
+        
     text = message.text.strip()
     if text == "ОТМЕНА":
         await cmd_start(message, state)
@@ -183,6 +223,10 @@ async def photo_step(message: Message, state: FSMContext):
 @dp.message(RequestStates.WaitPhoto, F.text == "ОТМЕНА")
 async def cancel_photo(message: Message, state: FSMContext):
     await cmd_start(message, state)
+
+@dp.message(RequestStates.WaitPhoto, F.video | F.document | F.voice | F.sticker | F.animation)
+async def wait_photo_media(message: Message, state: FSMContext):
+    await message.answer("Пожалуйста, прикрепите одно фото (видео и другие типы файлов не поддерживаются)", reply_markup=cancel_kb)
 
 @dp.message(RequestStates.WaitPhoto)
 async def invalid_photo(message: Message, state: FSMContext):
