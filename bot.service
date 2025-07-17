@@ -1,0 +1,13 @@
+[Unit]
+Description=Python Bot
+After=network.target
+
+[Service]
+User=petr
+Environment=PYTHONUNBUFFERED=1
+WorkingDirectory=/home/petr/projects/UP_Bot_AXO
+ExecStart=/home/petr/projects/UP_Bot_AXO/venv/bin/python main.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
