@@ -55,6 +55,14 @@ async def handle_status_reply(message: Message, bot: Bot):
                 except Exception as e:
                     logger.error(f"Ошибка при отправке уведомления пользователю: {e}")
             
+            # Если статус "Завершена" или "Отклонена", убираем inline-кнопки из оригинального сообщения
+            if new_status in ["Завершена", "Отклонена"]:
+                try:
+                    await message.reply_to_message.edit_reply_markup(reply_markup=None)
+                    logger.info(f"Inline-кнопки удалены из заявки {request_id} со статусом '{new_status}'")
+                except Exception as e:
+                    logger.error(f"Ошибка при удалении inline-кнопок: {e}")
+            
             # Отправляем подтверждение в чат
             await message.reply(f"Статус заявки {request_id} изменен на '{new_status}'")
         else:

@@ -294,7 +294,7 @@ async def finish_request(message: Message, state: FSMContext, with_photo: bool):
         parts.append(f"user_id: {message.from_user.id}")
 
         text = "\n".join(parts)
-        await message.answer("Заявка успешно сформирована и отправлена!", reply_markup=start_kb)
+        await message.answer(f"Заявка успешно сформирована и отправлена!\n\nID заявки: {request_id}", reply_markup=start_kb)
 
         target_chat = CHAT_IDS.get(department)
         if not target_chat:
