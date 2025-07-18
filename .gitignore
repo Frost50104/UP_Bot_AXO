@@ -1,5 +1,7 @@
 config.py
 
+google_creds.json
+
 user_cache.json
 
 # Игнорирование системного файла macOS
