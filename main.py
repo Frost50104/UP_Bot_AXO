@@ -21,6 +21,8 @@ from handlers import cmnd_clear_bot_events
 from handlers import callback_accept_request
 from handlers import callback_comment_request
 from handlers import handle_comment_reply
+from handlers import cmnd_show_crm
+from google_sheets import log_request
 
 
 # Настройка логирования
@@ -47,6 +49,7 @@ dp.include_router(cmnd_clear_bot_events.router)
 dp.include_router(callback_accept_request.router)
 dp.include_router(callback_comment_request.router)
 dp.include_router(handle_comment_reply.router)
+dp.include_router(cmnd_show_crm.router)
 
 async def main():
     logger.info("🚀 Бот запускается...")
@@ -339,6 +342,37 @@ async def finish_request(message: Message, state: FSMContext, with_photo: bool):
         # перед state.clear()
         with open("logs.txt", "a", encoding="utf-8") as log_file:
             log_file.write(text + "\n\n" + "-" * 50 + "\n\n")
+            
+        # Логирование заявки в Google Sheets
+        try:
+            # Получаем название отдела для отображения
+            department_name = next((name for name, code in departments.items() if code == department), department)
+            
+            # Формируем имя отправителя
+            sender_name = f"{message.from_user.first_name}"
+            if message.from_user.last_name:
+                sender_name += f" {message.from_user.last_name}"
+            if message.from_user.username:
+                sender_name += f" (@{message.from_user.username})"
+                
+            # Генерируем ID заявки (текущая дата + ID пользователя)
+            request_id = f"{datetime.now().strftime('%Y%m%d')}-{message.from_user.id}-{int(datetime.now().timestamp())}"
+            
+            # Логируем заявку
+            log_request(
+                date=now,
+                department=department_name,
+                address=address,
+                phone=phone,
+                problem=problem,
+                status="Новая",
+                request_id=request_id,
+                sender_name=sender_name,
+                sender_id=message.from_user.id
+            )
+            logger.info(f"Request logged to Google Sheets: {request_id}")
+        except Exception as e:
+            logger.error(f"Error logging request to Google Sheets: {e}")
     except Exception as e:
         logger.exception(f"Error in finish_request: {e}")
         await message.answer("Произошла ошибка при отправке заявки. Пожалуйста, попробуйте еще раз.", reply_markup=start_kb)
