@@ -23,6 +23,7 @@ from handlers import callback_comment_request
 from handlers import handle_comment_reply
 from handlers import handle_status_reply
 from handlers import cmnd_show_crm
+from handlers import cmnd_status_list
 from google_sheets import log_request
 
 
@@ -52,6 +53,7 @@ dp.include_router(callback_comment_request.router)
 dp.include_router(handle_comment_reply.router)
 dp.include_router(handle_status_reply.router)
 dp.include_router(cmnd_show_crm.router)
+dp.include_router(cmnd_status_list.router)
 
 async def main():
     logger.info("🚀 Бот запускается...")
