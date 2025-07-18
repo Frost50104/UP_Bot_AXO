@@ -283,6 +283,10 @@ async def finish_request(message: Message, state: FSMContext, with_photo: bool):
             return
         parts.append(f"Текст заявки: {problem}")
 
+        # Генерируем ID заявки (текущая дата + ID пользователя)
+        request_id = f"{datetime.now().strftime('%Y%m%d')}-{message.from_user.id}-{int(datetime.now().timestamp())}"
+        
+        parts.append(f"\nID заявки: {request_id}")
         parts.append("\nИнформация об отправителе")
         parts.append(f"Отправитель: {user_info}")
         parts.append(f"user_id: {message.from_user.id}")
@@ -355,8 +359,7 @@ async def finish_request(message: Message, state: FSMContext, with_photo: bool):
             if message.from_user.username:
                 sender_name += f" (@{message.from_user.username})"
                 
-            # Генерируем ID заявки (текущая дата + ID пользователя)
-            request_id = f"{datetime.now().strftime('%Y%m%d')}-{message.from_user.id}-{int(datetime.now().timestamp())}"
+            # ID заявки уже сгенерирован выше
             
             # Логируем заявку
             log_request(
