@@ -21,6 +21,7 @@ from handlers import cmnd_clear_bot_events
 from handlers import callback_accept_request
 from handlers import callback_comment_request
 from handlers import handle_comment_reply
+from handlers import handle_status_reply
 from handlers import cmnd_show_crm
 from google_sheets import log_request
 
@@ -49,6 +50,7 @@ dp.include_router(cmnd_clear_bot_events.router)
 dp.include_router(callback_accept_request.router)
 dp.include_router(callback_comment_request.router)
 dp.include_router(handle_comment_reply.router)
+dp.include_router(handle_status_reply.router)
 dp.include_router(cmnd_show_crm.router)
 
 async def main():

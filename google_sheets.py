@@ -1,6 +1,10 @@
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
+import logging
+
+# Настройка логирования
+logger = logging.getLogger(__name__)
 
 # Авторизация и подключение к Google Sheets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -30,3 +34,36 @@ def log_request(date, department, address, phone, problem, status="Новая", 
     # Формируем строку для добавления в таблицу
     row = [date, department, address, phone, problem, status, request_id, sender_name, str(sender_id)]
     sheet.append_row(row, value_input_option='USER_ENTERED')
+
+def update_request_status(request_id, new_status):
+    """
+    Обновляет статус заявки в Google Sheets по её ID.
+    
+    Параметры:
+    - request_id: ID заявки для поиска
+    - new_status: Новый статус заявки ("Новая", "В работе", "Завершена", "Отклонена")
+    
+    Возвращает:
+    - True, если обновление прошло успешно
+    - False, если заявка не найдена или произошла ошибка
+    """
+    try:
+        # Получаем все записи
+        all_records = sheet.get_all_records()
+        
+        # Ищем индекс строки с нужным request_id
+        # +2 потому что: +1 для заголовка таблицы и +1 потому что индексация в Google Sheets начинается с 1
+        for i, record in enumerate(all_records):
+            if record.get('ID заявки') == request_id:
+                row_index = i + 2
+                # Предполагаем, что столбец статуса - шестой (индекс 5, колонка F)
+                status_column = 6
+                sheet.update_cell(row_index, status_column, new_status)
+                logger.info(f"Статус заявки {request_id} обновлен на '{new_status}'")
+                return True
+        
+        logger.warning(f"Заявка с ID {request_id} не найдена")
+        return False
+    except Exception as e:
+        logger.error(f"Ошибка при обновлении статуса заявки: {e}")
+        return False

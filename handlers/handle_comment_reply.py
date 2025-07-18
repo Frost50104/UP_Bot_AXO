@@ -7,7 +7,7 @@ import logging
 router = Router()
 logger = logging.getLogger(__name__)
 
-@router.message(lambda m: m.reply_to_message and "Ответьте на это сообщение" in m.reply_to_message.text)
+@router.message(lambda m: m.reply_to_message and m.reply_to_message.text and "Ответьте на это сообщение" in m.reply_to_message.text)
 async def handle_comment_reply(message: Message, bot: Bot):
     logger.info("💬 Получен ответ на сообщение-подсказку")
 
