@@ -14,6 +14,7 @@ async def handle_status_reply(message: Message, bot: Bot):
     Обрабатывает ответы на сообщения бота в чатах отделов.
     Если ответ содержит "Готово", статус заявки меняется на "Завершена".
     Если ответ содержит "Отклонить", статус заявки меняется на "Отклонена".
+    Если ответ содержит "Принято" или "В работе", статус заявки меняется на "В работе".
     """
     # Проверяем, что сообщение отправлено ботом
     if not message.reply_to_message.from_user or not message.reply_to_message.from_user.is_bot:
@@ -30,6 +31,9 @@ async def handle_status_reply(message: Message, bot: Bot):
     elif "отклонить" in reply_text or "отклонено" in reply_text:
         new_status = "Отклонена"
         logger.info(f"Получен ответ 'Отклонить/Отклонено' от пользователя {message.from_user.id}")
+    elif "принято" in reply_text or "в работе" in reply_text:
+        new_status = "В работе"
+        logger.info(f"Получен ответ 'Принято/В работе' от пользователя {message.from_user.id}")
     else:
         # Если ответ не содержит нужных ключевых слов, игнорируем его
         return
@@ -49,7 +53,15 @@ async def handle_status_reply(message: Message, bot: Bot):
             if user_id_match:
                 user_id = int(user_id_match.group(1))
                 try:
-                    status_message = "завершена" if new_status == "Завершена" else "отклонена"
+                    if new_status == "Завершена":
+                        status_message = "завершена"
+                    elif new_status == "Отклонена":
+                        status_message = "отклонена"
+                    elif new_status == "В работе":
+                        status_message = "принята в работу"
+                    else:
+                        status_message = f"изменен на '{new_status}'"
+                    
                     await bot.send_message(user_id, f"Ваша заявка {request_id} {status_message}.")
                     logger.info(f"Уведомление о смене статуса отправлено пользователю {user_id}")
                 except Exception as e:
