@@ -23,6 +23,8 @@ async def handle_comment_reply(message: Message, bot: Bot):
 
     try:
         await bot.send_message(user_id, f"Комментарий по вашей заявке:\n\n{message.text}")
+        # Send confirmation message to the department chat
+        await bot.send_message(message.chat.id, "✅ Комментарий отправлен")
         logger.info("✅ Комментарий отправлен")
     except TelegramBadRequest as e:
         logger.error(f"❌ Ошибка при отправке комментария: {e}")
