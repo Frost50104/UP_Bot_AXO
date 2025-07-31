@@ -55,6 +55,7 @@ async def cmd_my_requests(message: Message):
         builder.button(text="В работе", callback_data=f"my_status_in_progress_{user_id}")
         builder.button(text="Завершена", callback_data=f"my_status_completed_{user_id}")
         builder.button(text="Отклонена", callback_data=f"my_status_rejected_{user_id}")
+        builder.button(text="Последние 3 заявки", callback_data=f"my_last_three_{user_id}")
         builder.adjust(2)  # Размещаем кнопки в 2 столбца
         
         # Отправляем сообщение с клавиатурой
@@ -63,6 +64,102 @@ async def cmd_my_requests(message: Message):
     except Exception as e:
         logger.error(f"Ошибка при получении заявок пользователя: {e}")
         await message.answer(f"Ошибка при получении ваших заявок: {e}")
+
+@router.callback_query(F.data.startswith("my_last_three_"))
+async def process_last_three_requests(callback: CallbackQuery):
+    """
+    Обработчик нажатия на кнопку "Последние 3 заявки"
+    Показывает последние 3 заявки пользователя независимо от статуса
+    """
+    # Получаем ID пользователя из callback_data
+    # Формат: my_last_three_USER_ID
+    if not callback.data.startswith("my_last_three_"):
+        await callback.answer("Некорректный формат данных", show_alert=True)
+        return
+        
+    user_id = callback.data[len("my_last_three_"):]
+    
+    # Проверяем, что пользователь запрашивает свои заявки
+    if str(callback.from_user.id) != str(user_id):
+        await callback.answer("Вы можете просматривать только свои заявки", show_alert=True)
+        return
+    
+    try:
+        # Авторизация и подключение к Google Sheets
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        creds = ServiceAccountCredentials.from_json_keyfile_name("google_creds.json", scope)
+        client = gspread.authorize(creds)
+        
+        # Получаем объект таблицы
+        spreadsheet = client.open(SPREADSHEET_NAME)
+        sheet = spreadsheet.sheet1
+        
+        # Получаем все записи
+        all_records = sheet.get_all_records()
+        
+        # Фильтруем записи по ID отправителя
+        user_records = [
+            record for record in all_records 
+            if str(record.get('ID отправителя', '')) == str(user_id)
+        ]
+        
+        if not user_records:
+            await callback.message.edit_text("У вас пока нет созданных заявок.")
+            return
+        
+        # Сортируем записи по дате (предполагая, что дата в формате, который можно сортировать)
+        # Если дата в нестандартном формате, может потребоваться дополнительная обработка
+        # Берем последние 3 заявки (или меньше, если их меньше 3)
+        last_three_records = sorted(user_records, key=lambda x: x.get('Дата', ''), reverse=True)[:3]
+        
+        # Формируем сообщение с заявками
+        message_parts = [f"Ваши последние 3 заявки ({len(last_three_records)}):\n"]
+        
+        for record in last_three_records:
+            request_id = record.get('ID заявки', 'Нет ID')
+            date = record.get('Дата', 'Нет даты')
+            department = record.get('Отдел', 'Нет отдела')
+            address = record.get('Точка', 'Нет адреса')
+            problem = record.get('Текст заявки', 'Нет описания')
+            status = record.get('Статус', 'Нет статуса')
+            
+            # Ограничиваем длину проблемы для читаемости
+            if len(problem) > 100:
+                problem = problem[:97] + "..."
+            
+            message_parts.append(f"ID: {request_id}\nДата: {date}\nСтатус: {status}\nОтдел: {department}\nАдрес: {address}\nПроблема: {problem}\n")
+        
+        # Объединяем части сообщения
+        message_text = "\n".join(message_parts)
+        
+        # Если сообщение слишком длинное, разбиваем его на части
+        if len(message_text) > 4000:
+            chunks = []
+            current_chunk = message_parts[0] + "\n"
+            
+            for part in message_parts[1:]:
+                if len(current_chunk) + len(part) + 1 > 4000:
+                    chunks.append(current_chunk)
+                    current_chunk = part + "\n"
+                else:
+                    current_chunk += "\n" + part
+            
+            if current_chunk:
+                chunks.append(current_chunk)
+            
+            # Отправляем первую часть, редактируя исходное сообщение
+            await callback.message.edit_text(chunks[0])
+            
+            # Отправляем остальные части как новые сообщения
+            for chunk in chunks[1:]:
+                await callback.message.answer(chunk)
+        else:
+            # Если сообщение помещается целиком, отправляем его
+            await callback.message.edit_text(message_text)
+        
+    except Exception as e:
+        logger.error(f"Ошибка при получении последних заявок пользователя: {e}")
+        await callback.message.edit_text(f"Ошибка при получении ваших заявок: {e}")
 
 @router.callback_query(F.data.startswith("my_status_"))
 async def process_my_status_selection(callback: CallbackQuery):
