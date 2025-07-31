@@ -1,5 +1,6 @@
 from aiogram import Router, F
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import logging
@@ -12,11 +13,19 @@ router = Router()
 # Название таблицы (должно совпадать с названием в google_sheets.py)
 SPREADSHEET_NAME = "Бот АХО / Заявки"
 
+# Статусы заявок
+STATUSES = {
+    "new": "Новая",
+    "in_progress": "В работе",
+    "completed": "Завершена",
+    "rejected": "Отклонена"
+}
+
 @router.message(F.text == "/my_requests")
 async def cmd_my_requests(message: Message):
     """
     Обработчик команды /my_requests
-    Отправляет пользователю список всех заявок, которые он создал
+    Отправляет пользователю кнопки для выбора статуса заявок
     """
     user_id = message.from_user.id
     
@@ -40,22 +49,96 @@ async def cmd_my_requests(message: Message):
             await message.answer("У вас пока нет созданных заявок.")
             return
         
-        # Формируем сообщение с заявками
-        message_parts = [f"Ваши заявки ({len(user_records)}):"]
+        # Создаем клавиатуру с кнопками статусов
+        builder = InlineKeyboardBuilder()
+        builder.button(text="Новая", callback_data=f"my_status_new_{user_id}")
+        builder.button(text="В работе", callback_data=f"my_status_in_progress_{user_id}")
+        builder.button(text="Завершена", callback_data=f"my_status_completed_{user_id}")
+        builder.button(text="Отклонена", callback_data=f"my_status_rejected_{user_id}")
+        builder.adjust(2)  # Размещаем кнопки в 2 столбца
         
-        for record in user_records:
+        # Отправляем сообщение с клавиатурой
+        await message.answer("Заявки с каким статусом вы хотите посмотреть?", reply_markup=builder.as_markup())
+        
+    except Exception as e:
+        logger.error(f"Ошибка при получении заявок пользователя: {e}")
+        await message.answer(f"Ошибка при получении ваших заявок: {e}")
+
+@router.callback_query(F.data.startswith("my_status_"))
+async def process_my_status_selection(callback: CallbackQuery):
+    """
+    Обработчик нажатия на кнопку выбора статуса для своих заявок
+    """
+    # Получаем данные из callback_data
+    # Формат: my_status_STATUS_KEY_USER_ID
+    # Извлекаем префикс "my_status_" и оставшуюся часть
+    if not callback.data.startswith("my_status_"):
+        await callback.answer("Некорректный формат данных", show_alert=True)
+        return
+        
+    remaining_data = callback.data[len("my_status_"):]
+    
+    # Находим все возможные ключи статусов
+    status_key = None
+    for key in STATUSES.keys():
+        if remaining_data.startswith(key + "_"):
+            status_key = key
+            # Извлекаем ID пользователя (все, что после ключа статуса и символа "_")
+            user_id = remaining_data[len(key) + 1:]
+            break
+    
+    if not status_key or not user_id:
+        await callback.answer("Некорректный формат данных", show_alert=True)
+        return
+    
+    # Проверяем, что пользователь запрашивает свои заявки
+    if str(callback.from_user.id) != str(user_id):
+        await callback.answer("Вы можете просматривать только свои заявки", show_alert=True)
+        return
+    
+    status_value = STATUSES.get(status_key)
+    if not status_value:
+        await callback.answer("Неизвестный статус", show_alert=True)
+        return
+    
+    try:
+        # Авторизация и подключение к Google Sheets
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        creds = ServiceAccountCredentials.from_json_keyfile_name("google_creds.json", scope)
+        client = gspread.authorize(creds)
+        
+        # Получаем объект таблицы
+        spreadsheet = client.open(SPREADSHEET_NAME)
+        sheet = spreadsheet.sheet1
+        
+        # Получаем все записи
+        all_records = sheet.get_all_records()
+        
+        # Фильтруем записи по ID отправителя и статусу
+        filtered_records = [
+            record for record in all_records 
+            if str(record.get('ID отправителя', '')) == str(user_id) and record.get('Статус') == status_value
+        ]
+        
+        if not filtered_records:
+            await callback.message.edit_text(f"У вас нет заявок со статусом \"{status_value}\".")
+            return
+        
+        # Формируем сообщение с заявками
+        message_parts = [f"Ваши заявки со статусом \"{status_value}\" ({len(filtered_records)}):\n"]
+        
+        for record in filtered_records:
             request_id = record.get('ID заявки', 'Нет ID')
             date = record.get('Дата', 'Нет даты')
             department = record.get('Отдел', 'Нет отдела')
             address = record.get('Точка', 'Нет адреса')
             problem = record.get('Текст заявки', 'Нет описания')
-            status = record.get('Статус', 'Нет статуса')
             
             # Ограничиваем длину проблемы для читаемости
             if len(problem) > 100:
                 problem = problem[:97] + "..."
             
-            message_parts.append(f"ID: {request_id}\nДата: {date}\nОтдел: {department}\nАдрес: {address}\nПроблема: {problem}\nСтатус: {status}\n")
+            message_parts.append(f"ID: {request_id}\nДата: {date}\nОтдел: {department}\nАдрес: {address}\nПроблема: {problem}\n")
         
         # Объединяем части сообщения
         message_text = "\n".join(message_parts)
@@ -75,13 +158,16 @@ async def cmd_my_requests(message: Message):
             if current_chunk:
                 chunks.append(current_chunk)
             
-            # Отправляем части как отдельные сообщения
-            for chunk in chunks:
-                await message.answer(chunk)
+            # Отправляем первую часть, редактируя исходное сообщение
+            await callback.message.edit_text(chunks[0])
+            
+            # Отправляем остальные части как новые сообщения
+            for chunk in chunks[1:]:
+                await callback.message.answer(chunk)
         else:
             # Если сообщение помещается целиком, отправляем его
-            await message.answer(message_text)
+            await callback.message.edit_text(message_text)
         
     except Exception as e:
         logger.error(f"Ошибка при получении заявок пользователя: {e}")
-        await message.answer(f"Ошибка при получении ваших заявок: {e}")
+        await callback.message.edit_text(f"Ошибка при получении ваших заявок: {e}")

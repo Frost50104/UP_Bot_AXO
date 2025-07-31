@@ -37,7 +37,7 @@ async def comment_request(callback: CallbackQuery, bot):
         await bot.send_message(
             chat_id=callback.message.chat.id,
             reply_to_message_id=callback.message.message_id,
-            text=f"✏️ Ответьте на ЭТО сообщение, чтобы отправить комментарий\nuser_id: {user_id}\nrequest_id: {request_id}"
+            text=f"✏️ Ответьте на ЭТО сообщение, чтобы отправить комментарий\n\nuser_id: {user_id}\nrequest_id: {request_id}"
         )
     except Exception as e:
         logger.error(f"Ошибка при отправке сообщения: {e}")
