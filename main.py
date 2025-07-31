@@ -20,6 +20,7 @@ from handlers import cmnd_bot_events
 from handlers import cmnd_clear_bot_events
 from handlers import callback_accept_request
 from handlers import callback_comment_request
+from handlers import callback_transfer_request
 from handlers import handle_comment_reply
 from handlers import handle_status_reply
 from handlers import cmnd_show_crm
@@ -51,6 +52,7 @@ dp.include_router(cmnd_bot_events.router)
 dp.include_router(cmnd_clear_bot_events.router)
 dp.include_router(callback_accept_request.router)
 dp.include_router(callback_comment_request.router)
+dp.include_router(callback_transfer_request.router)
 dp.include_router(handle_comment_reply.router)
 dp.include_router(handle_status_reply.router)
 dp.include_router(cmnd_show_crm.router)
@@ -308,6 +310,7 @@ async def finish_request(message: Message, state: FSMContext, with_photo: bool):
         builder = InlineKeyboardBuilder()
         builder.button(text="✅ Принять", callback_data=f"accept_{message.from_user.id}")
         builder.button(text="❌ Коммент", callback_data="request_comment")
+        builder.button(text="↪️ Передать", callback_data="transfer_request")
         markup = builder.as_markup()
 
         if with_photo:
