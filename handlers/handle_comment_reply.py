@@ -4,11 +4,12 @@ import re
 from aiogram.exceptions import TelegramBadRequest
 import logging
 from datetime import datetime
+from google_sheets import update_request_status
 
 router = Router()
 logger = logging.getLogger(__name__)
 
-@router.message(lambda m: m.reply_to_message and m.reply_to_message.text and "Ответьте на это сообщение" in m.reply_to_message.text)
+@router.message(lambda m: m.reply_to_message and m.reply_to_message.text and "Ответьте на ЭТО сообщение" in m.reply_to_message.text)
 async def handle_comment_reply(message: Message, bot: Bot):
     logger.info("💬 Получен ответ на сообщение-подсказку")
 
@@ -21,6 +22,21 @@ async def handle_comment_reply(message: Message, bot: Bot):
 
     user_id = int(match.group(1))
     logger.info(f"📨 Отправляем комментарий пользователю user_id={user_id}")
+    
+    # Извлекаем ID заявки из подсказки
+    request_id_match = re.search(r"request_id:\s*([^\n]+)", content)
+    if request_id_match and request_id_match.group(1).strip():
+        request_id = request_id_match.group(1).strip()
+        logger.info(f"📝 Найден ID заявки: {request_id}")
+        
+        # Обновляем статус заявки на "Отклонена"
+        success = update_request_status(request_id, "Отклонена")
+        if success:
+            logger.info(f"✅ Статус заявки {request_id} обновлен на 'Отклонена'")
+        else:
+            logger.error(f"❌ Не удалось обновить статус заявки {request_id}")
+    else:
+        logger.warning("❌ ID заявки не найден в подсказке или пустой")
 
     try:
         await bot.send_message(user_id, f"Комментарий по вашей заявке:\n\n{message.text}")

@@ -307,7 +307,7 @@ async def finish_request(message: Message, state: FSMContext, with_photo: bool):
 
         builder = InlineKeyboardBuilder()
         builder.button(text="✅ Принять", callback_data=f"accept_{message.from_user.id}")
-        builder.button(text="💬 Комментарий", callback_data="request_comment")
+        builder.button(text="❌ Комментарий", callback_data="request_comment")
         markup = builder.as_markup()
 
         if with_photo:
