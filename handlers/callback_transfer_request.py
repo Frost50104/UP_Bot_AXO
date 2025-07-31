@@ -5,6 +5,7 @@ from aiogram.exceptions import TelegramBadRequest
 import re
 import logging
 from config import CHAT_IDS
+from google_sheets import update_request_department
 
 router = Router()
 logger = logging.getLogger(__name__)
@@ -67,6 +68,22 @@ async def forward_to_department(callback: CallbackQuery, bot):
             
         builder.button(text="❌ Коммент", callback_data="request_comment")
         markup = builder.as_markup()
+        
+        # Extract request_id from the message
+        request_id_match = re.search(r"ID заявки: ([^\n]+)", content)
+        if request_id_match:
+            request_id = request_id_match.group(1)
+            # Get department name for Google Sheets update
+            dept_name = next((name for name, code in departments.items() if code == dept_code), dept_code)
+            
+            # Update department in Google Sheets
+            success = update_request_department(request_id, dept_name)
+            if success:
+                logger.info(f"Отдел заявки {request_id} обновлен на '{dept_name}'")
+            else:
+                logger.error(f"Не удалось обновить отдел заявки {request_id}")
+        else:
+            logger.error("Не удалось извлечь ID заявки из сообщения")
         
         # Forward the message to the selected department
         if callback.message.photo:

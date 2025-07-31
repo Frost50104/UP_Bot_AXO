@@ -67,3 +67,36 @@ def update_request_status(request_id, new_status):
     except Exception as e:
         logger.error(f"Ошибка при обновлении статуса заявки: {e}")
         return False
+
+def update_request_department(request_id, new_department):
+    """
+    Обновляет отдел заявки в Google Sheets по её ID.
+    
+    Параметры:
+    - request_id: ID заявки для поиска
+    - new_department: Новое название отдела
+    
+    Возвращает:
+    - True, если обновление прошло успешно
+    - False, если заявка не найдена или произошла ошибка
+    """
+    try:
+        # Получаем все записи
+        all_records = sheet.get_all_records()
+        
+        # Ищем индекс строки с нужным request_id
+        # +2 потому что: +1 для заголовка таблицы и +1 потому что индексация в Google Sheets начинается с 1
+        for i, record in enumerate(all_records):
+            if record.get('ID заявки') == request_id:
+                row_index = i + 2
+                # Предполагаем, что столбец отдела - второй (индекс 1, колонка B)
+                department_column = 2
+                sheet.update_cell(row_index, department_column, new_department)
+                logger.info(f"Отдел заявки {request_id} обновлен на '{new_department}'")
+                return True
+        
+        logger.warning(f"Заявка с ID {request_id} не найдена")
+        return False
+    except Exception as e:
+        logger.error(f"Ошибка при обновлении отдела заявки: {e}")
+        return False
