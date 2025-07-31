@@ -246,7 +246,7 @@ async def finish_request(message: Message, state: FSMContext, with_photo: bool):
         data = await state.get_data()
         now = datetime.now().strftime("%d.%m.%Y %H:%M")
         user_info = f"{message.from_user.first_name}\n@{message.from_user.username or 'без username'}"
-        parts = [f"Новая заявка {now}"]
+        parts = [f"Новая заявка {now}\n"]
 
         # Check if required data exists
         department = data.get("department")
@@ -279,7 +279,7 @@ async def finish_request(message: Message, state: FSMContext, with_photo: bool):
             await message.answer("Ошибка: не указан телефон. Пожалуйста, начните заново.", reply_markup=start_kb)
             await state.clear()
             return
-        parts.append(f"Номер телефона: {phone}")
+        parts.append(f"Номер телефона: {phone}\n")
 
         problem = data.get("problem")
         if not problem:
@@ -307,7 +307,7 @@ async def finish_request(message: Message, state: FSMContext, with_photo: bool):
 
         builder = InlineKeyboardBuilder()
         builder.button(text="✅ Принять", callback_data=f"accept_{message.from_user.id}")
-        builder.button(text="❌ Комментарий", callback_data="request_comment")
+        builder.button(text="❌ Коммент", callback_data="request_comment")
         markup = builder.as_markup()
 
         if with_photo:
