@@ -27,6 +27,7 @@ from handlers import cmnd_show_crm
 from handlers import cmnd_status_list
 from handlers import cmnd_my_requests
 from handlers import cmnd_add_admin
+from handlers import cmnd_delete_admin
 from google_sheets import log_request
 
 
@@ -60,6 +61,7 @@ dp.include_router(cmnd_show_crm.router)
 dp.include_router(cmnd_status_list.router)
 dp.include_router(cmnd_my_requests.router)
 dp.include_router(cmnd_add_admin.router)
+dp.include_router(cmnd_delete_admin.router)
 
 async def main():
     logger.info("🚀 Бот запускается...")
