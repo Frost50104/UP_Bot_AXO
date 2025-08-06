@@ -4,6 +4,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import logging
+import re
 
 # Настройка логирования
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ STATUSES = {
     "rejected": "Отклонена"
 }
 
-@router.message(F.text == "/my_requests")
+@router.message(lambda message: re.match(r"^\/my_requests(@\w+)?$", message.text))
 async def cmd_my_requests(message: Message):
     """
     Обработчик команды /my_requests

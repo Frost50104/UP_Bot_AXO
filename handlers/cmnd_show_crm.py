@@ -2,6 +2,7 @@ from aiogram import Router, F
 from aiogram.types import Message
 from config import ADMINS
 import gspread
+import re
 from oauth2client.service_account import ServiceAccountCredentials
 
 router = Router()
@@ -9,7 +10,7 @@ router = Router()
 # Название таблицы (должно совпадать с названием в google_sheets.py)
 SPREADSHEET_NAME = "Бот АХО / Заявки"
 
-@router.message(F.text == "/show_crm")
+@router.message(lambda message: re.match(r"^\/show_crm(@\w+)?$", message.text))
 async def show_crm(message: Message):
     """
     Обработчик команды /show_crm

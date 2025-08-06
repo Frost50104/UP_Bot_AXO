@@ -9,7 +9,7 @@ from config import ADMINS, CHAT_IDS
 router = Router()
 logger = logging.getLogger(__name__)
 
-@router.message(F.text == "/delete_admin")
+@router.message(lambda message: re.match(r"^\/delete_admin(@\w+)?$", message.text))
 async def cmd_delete_admin(message: Message):
     # Check if command is executed in a department chat
     if message.chat.id in CHAT_IDS.values():

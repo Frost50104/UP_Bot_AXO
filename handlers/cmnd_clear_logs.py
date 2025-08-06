@@ -3,10 +3,11 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from config import ADMINS
 import os
+import re
 
 router = Router()
 
-@router.message(F.text == "/clear_logs")
+@router.message(lambda message: re.match(r"^\/clear_logs(@\w+)?$", message.text))
 async def clear_logs_prompt(message: Message):
     if message.from_user.id not in ADMINS:
         await message.answer("У вас нет доступа к этой команде.")

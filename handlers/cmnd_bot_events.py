@@ -2,10 +2,11 @@ from aiogram import Router, F
 from aiogram.types import Message, FSInputFile
 from config import ADMINS
 import os
+import re
 
 router = Router()
 
-@router.message(F.text == "/bot_events")
+@router.message(lambda message: re.match(r"^\/bot_events(@\w+)?$", message.text))
 async def send_bot_logs(message: Message):
     if message.from_user.id not in ADMINS:
         await message.answer("У вас нет доступа к этой команде.")

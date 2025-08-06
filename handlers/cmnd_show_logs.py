@@ -2,10 +2,11 @@ from aiogram import Router, F
 from aiogram.types import Message, FSInputFile
 from config import ADMINS
 import os
+import re
 
 router = Router()
 
-@router.message(F.text == "/show_logs")
+@router.message(lambda message: re.match(r"^\/show_logs(@\w+)?$", message.text))
 async def show_logs(message: Message):
     if message.from_user.id not in ADMINS:
         await message.answer("У вас нет доступа к этой команде.")

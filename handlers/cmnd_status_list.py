@@ -5,6 +5,7 @@ from config import ADMINS
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import logging
+import re
 
 # Настройка логирования
 logger = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ STATUSES = {
     "rejected": "Отклонена"
 }
 
-@router.message(F.text == "/status_list")
+@router.message(lambda message: re.match(r"^\/status_list(@\w+)?$", message.text))
 async def cmd_status_list(message: Message):
     """
     Обработчик команды /status_list
