@@ -108,6 +108,11 @@ async def cmd_start(message: Message, state: FSMContext):
 
 @dp.message(F.text == "НОВАЯ ЗАЯВКА")
 async def new_request(message: Message, state: FSMContext):
+    # Проверяем, что заявка не создается в чате отдела
+    if message.chat.id in CHAT_IDS.values():
+        await message.answer("Создание новых заявок в чатах отделов запрещено. Пожалуйста, используйте личный чат с ботом для создания заявок.")
+        return
+    
     await message.answer("В какой отдел отправляем заявку?", reply_markup=department_kb())
     await state.set_state(RequestStates.ChoosingDepartment)
 

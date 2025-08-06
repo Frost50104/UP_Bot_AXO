@@ -7,7 +7,7 @@ import re
 import logging
 import os
 
-from config import ADMINS
+from config import ADMINS, CHAT_IDS
 
 router = Router()
 logger = logging.getLogger(__name__)
@@ -18,6 +18,11 @@ class AddAdminStates(StatesGroup):
 
 @router.message(F.text == "/add_admin")
 async def cmd_add_admin(message: Message):
+    # Check if command is executed in a department chat
+    if message.chat.id in CHAT_IDS.values():
+        await message.answer("Эта операция доступна только внутри самого бота")
+        return
+        
     # Check if user is admin
     if message.from_user.id not in ADMINS:
         await message.answer("У вас нет доступа к этой команде.")
