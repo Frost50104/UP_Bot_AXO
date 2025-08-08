@@ -10,7 +10,7 @@ router = Router()
 # Название таблицы (должно совпадать с названием в google_sheets.py)
 SPREADSHEET_NAME = "Бот АХО / Заявки"
 
-@router.message(lambda message: re.match(r"^\/show_crm(@\w+)?$", message.text))
+@router.message(lambda message: message.text and re.match(r"^\/show_crm(@\w+)?$", message.text))
 async def show_crm(message: Message):
     """
     Обработчик команды /show_crm

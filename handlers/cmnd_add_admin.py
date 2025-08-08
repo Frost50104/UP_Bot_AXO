@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class AddAdminStates(StatesGroup):
     WaitingForAdminID = State()
 
-@router.message(lambda message: re.match(r"^\/add_admin(@\w+)?$", message.text))
+@router.message(lambda message: message.text and re.match(r"^\/add_admin(@\w+)?$", message.text))
 async def cmd_add_admin(message: Message):
     # Check if command is executed in a department chat
     if message.chat.id in CHAT_IDS.values():

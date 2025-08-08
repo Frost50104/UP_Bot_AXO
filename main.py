@@ -101,7 +101,7 @@ def department_kb():
     builder.adjust(2)
     return builder.as_markup(resize_keyboard=True)
 
-@dp.message(lambda message: re.match(r"^\/start(@\w+)?$", message.text))
+@dp.message(lambda message: message.text and re.match(r"^\/start(@\w+)?$", message.text))
 async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
     await message.answer("Привет, я бот UPPETIT 2.0, если у Вас появилась проблема - я помогу её решить", reply_markup=start_kb)

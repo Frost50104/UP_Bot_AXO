@@ -22,7 +22,7 @@ STATUSES = {
     "rejected": "Отклонена"
 }
 
-@router.message(lambda message: re.match(r"^\/my_requests(@\w+)?$", message.text))
+@router.message(lambda message: message.text and re.match(r"^\/my_requests(@\w+)?$", message.text))
 async def cmd_my_requests(message: Message):
     """
     Обработчик команды /my_requests

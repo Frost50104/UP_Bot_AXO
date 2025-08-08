@@ -7,7 +7,7 @@ import re
 
 router = Router()
 
-@router.message(lambda message: re.match(r"^\/clear_logs(@\w+)?$", message.text))
+@router.message(lambda message: message.text and re.match(r"^\/clear_logs(@\w+)?$", message.text))
 async def clear_logs_prompt(message: Message):
     if message.from_user.id not in ADMINS:
         await message.answer("У вас нет доступа к этой команде.")
