@@ -2,6 +2,8 @@ import logging
 import sys
 import re
 import asyncio
+import hashlib
+import time
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -46,6 +48,16 @@ logger = logging.getLogger(__name__)
 # Инициализация бота и диспетчера
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
+
+# Антидубликат: храним недавние обработанные заявки
+# По ID заявки: request_id -> timestamp
+PROCESSED_REQUESTS: dict[str, float] = {}
+# По содержимому: content_key -> (timestamp, request_id)
+PROCESSED_CONTENT: dict[str, tuple[float, str]] = {}
+# Сколько секунд держим заявку в памяти (по умолчанию 10 минут)
+DEDUP_TTL_SECONDS = 10 * 60
+# Максимальный размер кэша, чтобы не разрастался бесконечно
+DEDUP_MAX_SIZE = 2000
 
 # Подключение роутера
 dp.include_router(cmnd_show_logs.router)
@@ -300,8 +312,44 @@ async def finish_request(message: Message, state: FSMContext, with_photo: bool):
             return
         parts.append(f"Текст заявки: {problem}")
 
-        # Генерируем ID заявки (текущая дата + ID пользователя)
-        request_id = f"{datetime.now().strftime('%Y%m%d')}-{message.from_user.id}-{int(datetime.now().timestamp())}"
+        # Сформируем ключ содержимого без времени — для защиты от мгновенных повторов
+        content_key = f"{message.from_user.id}|{department}|{address}|{phone}|{problem}"
+
+        # Антидубликат по содержимому: если такая заявка уже была недавно — не дублируем
+        ts_now = time.time()
+        # Ленивая очистка кэшей
+        if (len(PROCESSED_REQUESTS) + len(PROCESSED_CONTENT)) > DEDUP_MAX_SIZE:
+            # Удаляем просроченные записи
+            for rid, ts in list(PROCESSED_REQUESTS.items()):
+                if ts_now - ts > DEDUP_TTL_SECONDS:
+                    PROCESSED_REQUESTS.pop(rid, None)
+            for ckey, (ts, _) in list(PROCESSED_CONTENT.items()):
+                if ts_now - ts > DEDUP_TTL_SECONDS:
+                    PROCESSED_CONTENT.pop(ckey, None)
+
+        if content_key in PROCESSED_CONTENT:
+            ts_prev, prev_id = PROCESSED_CONTENT[content_key]
+            if ts_now - ts_prev <= DEDUP_TTL_SECONDS:
+                logger.info(f"Duplicate request (by content) suppressed: {prev_id}")
+                await message.answer(
+                    "Похоже, такая же заявка уже была отправлена недавно. "
+                    f"Дубликат не создаём.\n\nID существующей заявки: {prev_id}",
+                    reply_markup=start_kb
+                )
+                await state.clear()
+                return
+
+        # Генерируем стабильный ID заявки на основе даты (день), пользователя и содержимого заявки (включая минуту)
+        day_str = datetime.now().strftime('%Y%m%d')
+        minute_str = datetime.now().strftime('%Y%m%d%H%M')
+        key_str = f"{message.from_user.id}|{department}|{address}|{phone}|{problem}|{minute_str}"
+        digest = int.from_bytes(hashlib.sha1(key_str.encode('utf-8')).digest(), 'big')
+        suffix = str(digest % 10**10)  # 10-значный числовой хвост
+        request_id = f"{day_str}-{message.from_user.id}-{suffix}"
+
+        # Зафиксируем как обработанную заявку
+        PROCESSED_REQUESTS[request_id] = ts_now
+        PROCESSED_CONTENT[content_key] = (ts_now, request_id)
         
         parts.append(f"\nID заявки: {request_id}")
         parts.append("\nИнформация об отправителе")
