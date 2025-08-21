@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 async def handle_status_reply(message: Message, bot: Bot):
     """
     Обрабатывает ответы на сообщения бота в чатах отделов.
-    Если ответ содержит "Готово", статус заявки меняется на "Завершена".
+    Если ответ содержит "Завершено", статус заявки меняется на "Завершена".
     Если ответ содержит "Отклонить", статус заявки меняется на "Отклонена".
     Если ответ содержит "Принято" или "В работе", статус заявки меняется на "В работе".
     """
@@ -25,9 +25,9 @@ async def handle_status_reply(message: Message, bot: Bot):
     
     # Определяем новый статус на основе текста ответа
     new_status = None
-    if "готово" in reply_text or "завершено" in reply_text:
+    if "завершено" in reply_text:
         new_status = "Завершена"
-        logger.info(f"Получен ответ 'Готово/Завершено' от пользователя {message.from_user.id}")
+        logger.info(f"Получен ответ 'Завершено' от пользователя {message.from_user.id}")
     elif "отклонить" in reply_text or "отклонено" in reply_text:
         new_status = "Отклонена"
         logger.info(f"Получен ответ 'Отклонить/Отклонено' от пользователя {message.from_user.id}")
