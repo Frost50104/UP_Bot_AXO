@@ -104,7 +104,8 @@ departments = {
     "Компьютер / мышка / клавиатура": "pc",
     "Что-то другое сломалось": "other",
     "Баристика": "barista",
-    "Буква": "letter"
+    "Буква": "letter",
+    "Мысли": "thoughts"
 }
 
 def department_kb():
@@ -218,7 +219,13 @@ async def phone_step(message: Message, state: FSMContext):
         return
     await state.update_data(phone=text)
     user_data = await state.get_data()
-    prompt = "Что необходимо сделать?" if user_data.get("department") == "letter" else "Опишите проблему"
+    dep = user_data.get("department")
+    if dep == "letter":
+        prompt = "Что необходимо сделать?"
+    elif dep == "thoughts":
+        prompt = "Что скажете?"
+    else:
+        prompt = "Опишите проблему"
     await message.answer(prompt, reply_markup=cancel_kb)
     await state.set_state(RequestStates.DescribeProblem)
 
@@ -242,7 +249,7 @@ async def description_step(message: Message, state: FSMContext):
         return
     await state.update_data(problem=text)
     user_data = await state.get_data()
-    if user_data["department"] == "internet":
+    if user_data["department"] in ("internet", "thoughts"):
         await finish_request(message, state, with_photo=False)
     else:
         await message.answer("Прикрепите одну фотографию (видео нельзя, только фото)", reply_markup=cancel_kb)
