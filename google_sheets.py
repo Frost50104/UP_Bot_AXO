@@ -33,7 +33,17 @@ def log_request(date, department, address, phone, problem, status="Новая", 
     """
     # Формируем строку для добавления в таблицу
     row = [date, department, address, phone, problem, status, request_id, sender_name, str(sender_id)]
-    sheet.append_row(row, value_input_option='USER_ENTERED')
+    # Используем append_rows с table_range, чтобы корректно добавлять строки даже при включённых фильтрах
+    try:
+        sheet.append_rows(
+            [row],
+            value_input_option='USER_ENTERED',
+            insert_data_option='INSERT_ROWS',
+            table_range='A1:I1'
+        )
+    except Exception as e:
+        logger.error(f"Ошибка при добавлении строки в Google Sheets: {e}")
+        raise
 
 def update_request_status(request_id, new_status):
     """
