@@ -32,6 +32,7 @@ from handlers import cmnd_add_admin
 from handlers import cmnd_delete_admin
 from handlers import cmnd_my_id
 from google_sheets import log_request
+from data_lookup import get_sender_extra_info
 
 
 # Настройка логирования
@@ -364,6 +365,25 @@ async def finish_request(message: Message, state: FSMContext, with_photo: bool):
         parts.append("\nИнформация об отправителе")
         parts.append(f"Отправитель: {user_info}")
         parts.append(f"user_id: {message.from_user.id}")
+
+        # Добавим ИП, почту и ИНН из файла по user_id, если доступны
+        try:
+            extra = get_sender_extra_info(str(message.from_user.id))
+        except Exception as e:
+            extra = None
+            logger.warning(f"Не удалось получить доп. данные отправителя: {e}")
+        if extra:
+            ip_val = extra.get("ip")
+            email_val = extra.get("email")
+            inn_val = extra.get("inn")
+            if any([ip_val, email_val, inn_val]):
+                parts.append("\nДоп. данные отправителя")
+                if ip_val:
+                    parts.append(f"ИП: {ip_val}")
+                if email_val:
+                    parts.append(f"Почта: {email_val}")
+                if inn_val:
+                    parts.append(f"ИНН: {inn_val}")
 
         text = "\n".join(parts)
         await message.answer(f"Заявка успешно сформирована и отправлена!\n\nID заявки: {request_id}", reply_markup=start_kb)

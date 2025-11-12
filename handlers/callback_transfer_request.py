@@ -6,6 +6,7 @@ import re
 import logging
 from config import CHAT_IDS
 from google_sheets import update_request_department
+from data_lookup import get_sender_extra_info
 
 router = Router()
 logger = logging.getLogger(__name__)
@@ -53,6 +54,36 @@ async def forward_to_department(callback: CallbackQuery, bot):
         
         # Get the original message content
         content = callback.message.caption or callback.message.text or ""
+
+        # Try to enrich content with extra sender info (ИП, почта, ИНН) if not already present
+        enriched_content = content
+        try:
+            uid_match_tmp = re.search(r"user_id:\s*(\d+)", content)
+            if uid_match_tmp:
+                uid_for_lookup = uid_match_tmp.group(1)
+                extra = get_sender_extra_info(uid_for_lookup)
+                # Append only missing fields to avoid duplicates
+                lines_to_add = []
+                if extra:
+                    ip_val = extra.get("ip")
+                    email_val = extra.get("email")
+                    inn_val = extra.get("inn")
+                    # Add section header if any value will be appended and header not already present
+                    if any([ip_val, email_val, inn_val]):
+                        if "Доп. данные отправителя" not in enriched_content:
+                            lines_to_add.append("\nДоп. данные отправителя")
+                        if ip_val and "ИП:" not in enriched_content:
+                            lines_to_add.append(f"ИП: {ip_val}")
+                        if email_val and ("Почта:" not in enriched_content and "Email:" not in enriched_content and "E-mail:" not in enriched_content):
+                            lines_to_add.append(f"Почта: {email_val}")
+                        if inn_val and "ИНН:" not in enriched_content:
+                            lines_to_add.append(f"ИНН: {inn_val}")
+                if lines_to_add:
+                    if enriched_content and not enriched_content.endswith("\n"):
+                        enriched_content += "\n"
+                    enriched_content += "\n".join(lines_to_add)
+        except Exception as e:
+            logger.warning(f"Не удалось дополнить сообщение данными отправителя: {e}")
         
         # Create accept and comment buttons for the forwarded message
         builder = InlineKeyboardBuilder()
@@ -93,14 +124,14 @@ async def forward_to_department(callback: CallbackQuery, bot):
             await bot.send_photo(
                 chat_id=target_chat_id,
                 photo=photo.file_id,
-                caption=content,
+                caption=enriched_content,
                 reply_markup=markup
             )
         else:
             # Forward as text
             await bot.send_message(
                 chat_id=target_chat_id,
-                text=content,
+                text=enriched_content,
                 reply_markup=markup
             )
         
