@@ -386,7 +386,15 @@ async def finish_request(message: Message, state: FSMContext, with_photo: bool):
                     parts.append(f"ИНН: {inn_val}")
 
         text = "\n".join(parts)
-        await message.answer(f"Заявка успешно сформирована и отправлена!\n\nID заявки: {request_id}", reply_markup=start_kb)
+        # Сообщение пользователю об успешной отправке
+        if department == "thoughts":
+            success_text = (
+                "✅ Готово! Ваше предложение отправлено в офис.\n"
+                "Спасибо, что делитесь идеями — это помогает нам делать UPPETIT лучше 💛"
+            )
+        else:
+            success_text = "Заявка успешно сформирована и отправлена!"
+        await message.answer(f"{success_text}\n\nID заявки: {request_id}", reply_markup=start_kb)
 
         target_chat = CHAT_IDS.get(department)
         if not target_chat:
