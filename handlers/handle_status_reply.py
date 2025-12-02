@@ -38,10 +38,36 @@ async def handle_status_reply(message: Message, bot: Bot):
         # Если ответ не содержит нужных ключевых слов, игнорируем его
         return
     
-    # Извлекаем ID заявки из оригинального сообщения
+    # Извлекаем ID заявки и user_id из оригинального сообщения
     original_text = message.reply_to_message.text or message.reply_to_message.caption or ""
     request_id_match = re.search(r"ID заявки: ([^\n]+)", original_text)
+    user_id_match = re.search(r"user_id: (\d+)", original_text)
     
+    # Особая логика для отдела thoughts: для статуса "Завершена" сначала запрашиваем комментарий
+    if new_status == "Завершена" and message.chat.id == CHAT_IDS.get("thoughts"):
+        if not (request_id_match and user_id_match):
+            logger.error("Для завершения в thoughts не удалось извлечь request_id или user_id")
+            await message.reply("Не удалось подготовить завершение: отсутствуют данные заявки.")
+            return
+        request_id = request_id_match.group(1)
+        user_id = user_id_match.group(1)
+        try:
+            await bot.send_message(
+                chat_id=message.chat.id,
+                reply_to_message_id=message.reply_to_message.message_id,
+                text=(
+                    "✏️ Ответьте на ЭТО сообщение, чтобы отправить комментарий\n\n"
+                    f"user_id: {user_id}\n"
+                    f"request_id: {request_id}\n"
+                    f"status_after_comment: Завершена"
+                )
+            )
+            logger.info(f"В чате thoughts запрошен комментарий для завершения заявки {request_id}")
+        except Exception as e:
+            logger.error(f"Ошибка при отправке подсказки для комментария: {e}")
+            await message.reply("Не удалось отправить подсказку для комментария.")
+        return
+
     if request_id_match:
         request_id = request_id_match.group(1)
         # Обновляем статус заявки
@@ -49,7 +75,6 @@ async def handle_status_reply(message: Message, bot: Bot):
         if success:
             logger.info(f"Статус заявки {request_id} обновлен на '{new_status}'")
             # Отправляем уведомление пользователю
-            user_id_match = re.search(r"user_id: (\d+)", original_text)
             if user_id_match:
                 user_id = int(user_id_match.group(1))
                 try:
