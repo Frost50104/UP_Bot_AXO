@@ -31,6 +31,7 @@ from handlers import cmnd_my_requests
 from handlers import cmnd_add_admin
 from handlers import cmnd_delete_admin
 from handlers import cmnd_my_id
+from handlers import cmnd_add_point
 from google_sheets import log_request
 from data_lookup import get_sender_extra_info
 
@@ -77,6 +78,7 @@ dp.include_router(cmnd_my_requests.router)
 dp.include_router(cmnd_add_admin.router)
 dp.include_router(cmnd_delete_admin.router)
 dp.include_router(cmnd_my_id.router)
+dp.include_router(cmnd_add_point.router)
 
 async def main():
     logger.info("🚀 Бот запускается...")

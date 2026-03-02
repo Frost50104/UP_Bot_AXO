@@ -101,6 +101,12 @@ def _load_data() -> None:
         _cache["loaded"] = True
 
 
+def reload_data() -> None:
+    """Сбрасывает кэш, чтобы при следующем запросе данные перечитались из файла."""
+    _cache["loaded"] = False
+    _cache["by_id"] = {}
+
+
 def get_sender_extra_info(user_id: str) -> Optional[Dict[str, Optional[str]]]:
     """Возвращает словарь с ключами ip, email, inn по user_id (строка).
     Если данные не найдены или загрузка невозможна, возвращает None.
